@@ -3,111 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GoDz Zenith | Algerian Elite</title>
+    <title>GoDz Final | Elite Move</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --green: #00FF41; --bg: #050505; --glass: rgba(15, 15, 15, 0.9); }
-        body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; overflow: hidden; height: 100vh; }
-        #map { height: 100vh; width: 100%; position: fixed; z-index: 1; filter: grayscale(0.3) contrast(1.1); }
+        :root { --green: #00FF41; --bg: #050505; --glass: rgba(15, 15, 15, 0.95); }
+        body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; overflow: hidden; height: 100vh; margin:0; }
+        #map { height: 100vh; width: 100%; position: fixed; z-index: 1; filter: brightness(0.7) contrast(1.2); }
         
-        /* Legendary UI Components */
-        .glass-panel { background: var(--glass); backdrop-filter: blur(20px); border-radius: 32px; border: 1px solid rgba(255,255,255,0.05); padding: 25px; box-shadow: 0 25px 50px rgba(0,0,0,0.9); }
+        /* UI FIXES */
+        .leaflet-routing-container { display: none !important; } /* FORCES THE LIST TO HIDE */
+        
+        .glass-panel { background: var(--glass); backdrop-filter: blur(25px); border-radius: 35px; border: 1px solid rgba(255,255,255,0.08); padding: 25px; box-shadow: 0 30px 60px rgba(0,0,0,1); }
         .ui-layer { position: absolute; z-index: 1000; width: 100%; pointer-events: none; }
         .ui-layer * { pointer-events: auto; }
 
-        /* Animated Entrance */
-        #auth-screen { 
-            background: radial-gradient(circle at center, #111 0%, #000 100%); 
-            position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; 
-            transition: 0.8s transform cubic-bezier(0.4, 0, 0.2, 1);
-        }
+        #auth-screen { background: black; position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        .btn-godz { background: var(--green); color: black; font-weight: 900; border: none; border-radius: 22px; padding: 18px; width: 100%; }
+        .btn-cancel { background: rgba(255, 50, 50, 0.15); color: #ff5050; border: 1px solid #ff5050; border-radius: 18px; width: 100%; padding: 12px; font-weight: bold; margin-top: 15px; }
 
-        .btn-godz { background: var(--green); color: black; font-weight: 900; border: none; border-radius: 20px; padding: 18px; width: 100%; letter-spacing: 1px; transition: 0.3s; }
-        .btn-godz:active { transform: scale(0.96); opacity: 0.8; }
-        .btn-cancel { background: rgba(255, 50, 50, 0.2); color: #ff5050; border: 1px solid #ff5050; border-radius: 15px; width: 100%; padding: 10px; margin-top: 10px; font-weight: bold; }
-
-        /* Search & Suggestions */
-        .search-container { position: absolute; top: 25px; width: 100%; padding: 0 20px; }
-        .search-bar { background: var(--glass); border-radius: 18px; border: 1px solid rgba(255,255,255,0.1); padding: 12px 20px; display: flex; align-items: center; }
+        .search-bar { background: var(--glass); border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); padding: 15px 25px; display: flex; align-items: center; margin: 20px; }
         .search-bar input { background: transparent; border: none; color: white; width: 100%; outline: none; margin-left: 10px; }
-        .suggestions { background: #111; border-radius: 18px; margin-top: 8px; overflow: hidden; display: none; }
-        .suggest-item { padding: 15px; border-bottom: 1px solid #222; font-size: 14px; cursor: pointer; }
 
-        /* Vehicle Selector */
-        .v-grid { display: flex; gap: 10px; margin-bottom: 20px; }
-        .v-option { flex: 1; background: rgba(255,255,255,0.03); border: 2px solid transparent; border-radius: 18px; padding: 12px; text-align: center; cursor: pointer; transition: 0.3s; }
-        .v-option.active { border-color: var(--green); background: rgba(0,255,65,0.1); }
-
-        /* Radar Animation */
-        .radar { width: 60px; height: 60px; margin: 0 auto 15px; border-radius: 50%; border: 2px solid var(--green); animation: pulse 1.5s infinite; position: relative; }
-        @keyframes pulse { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
-
-        /* Driver Card */
-        .job-card { background: rgba(255,255,255,0.03); border: 1px solid #333; border-radius: 20px; padding: 20px; margin-bottom: 15px; animation: slideIn 0.4s ease-out; }
-        @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-        .price-chip { background: var(--green); color: black; padding: 5px 15px; border-radius: 10px; font-weight: 900; font-size: 1.2rem; }
+        .v-grid { display: flex; gap: 12px; margin-bottom: 25px; }
+        .v-opt { flex: 1; background: rgba(255,255,255,0.04); border: 2px solid transparent; border-radius: 20px; padding: 15px; text-align: center; cursor: pointer; }
+        .v-opt.active { border-color: var(--green); background: rgba(0,255,65,0.1); }
+        
+        .price-tag { background: var(--green); color: black; padding: 8px 20px; border-radius: 12px; font-weight: 900; font-size: 1.4rem; }
+        .job-card { background: #111; border: 1px solid #333; border-radius: 25px; padding: 20px; margin-bottom: 15px; }
     </style>
 </head>
 <body>
 
 <div id="map"></div>
 
-<!-- Auth UI -->
+<!-- Auth -->
 <div id="auth-screen">
     <div class="glass-panel w-100 mx-4" style="max-width: 400px;">
-        <div class="text-center mb-4">
-            <h1 style="color: var(--green); font-weight: 900; font-size: 3rem; letter-spacing: -3px;">GoDz</h1>
-            <p class="text-secondary small">Tri9ek, b'shwaya • Algiers</p>
-        </div>
+        <h1 class="text-center mb-4" style="color: var(--green); font-weight: 900; font-size: 3rem;">GoDz</h1>
         <input type="text" id="a-name" class="form-control bg-dark border-0 text-white p-3 mb-3 rounded-4" placeholder="Full Name">
         <input type="tel" id="a-phone" class="form-control bg-dark border-0 text-white p-3 mb-3 rounded-4" placeholder="Phone Number">
         <input type="password" id="a-pass" class="form-control bg-dark border-0 text-white p-3 mb-4 rounded-4" placeholder="Password">
         <div class="d-flex gap-2 mb-4">
-            <button class="btn btn-outline-light w-50 active-role" id="role-p" onclick="setRole('passenger')">Passenger</button>
+            <button class="btn btn-outline-light w-50" id="role-p" onclick="setRole('passenger')">Rider</button>
             <button class="btn btn-outline-light w-50" id="role-d" onclick="setRole('driver')">Driver</button>
         </div>
-        <button class="btn-godz" onclick="handleAuth()">CONTINUE</button>
+        <button class="btn-godz" onclick="handleAuth()">START MOVING</button>
     </div>
 </div>
 
 <!-- Passenger UI -->
 <div id="ui-passenger" class="ui-layer d-none">
-    <div class="search-container">
-        <div class="search-bar">
-            <i class="fa fa-location-arrow text-success"></i>
-            <input type="text" id="p-input" placeholder="Search or tap map..." oninput="searchPlaces(this.value)">
-        </div>
-        <div id="p-suggest" class="suggestions"></div>
+    <div class="search-bar mt-4">
+        <i class="fa fa-search text-success"></i>
+        <input type="text" id="p-input" placeholder="Tap map or search..." oninput="searchPlaces(this.value)">
     </div>
+    <div id="p-suggest" class="mx-4 mt-n2 rounded-4 overflow-hidden d-none" style="background:#111; z-index:2000; position:relative;"></div>
 
-    <div class="fixed-bottom p-3">
-        <div class="glass-panel" id="p-panel">
+    <div class="fixed-bottom p-4">
+        <div class="glass-panel">
             <div id="p-idle">
                 <div class="v-grid">
-                    <div class="v-option active" id="v-eco" onclick="setV('eco')">
-                        <i class="fa fa-bolt mb-1"></i><br><small>Eco<br>30 DA/km</small>
-                    </div>
-                    <div class="v-option" id="v-luxe" onclick="setV('luxe')">
-                        <i class="fa fa-crown mb-1"></i><br><small>Luxe<br>60 DA/km</small>
-                    </div>
+                    <div class="v-opt active" id="v-eco" onclick="setV('eco')"><i class="fa fa-bolt"></i><br><small>Eco (30 DA)</small></div>
+                    <div class="v-opt" id="v-luxe" onclick="setV('luxe')"><i class="fa fa-crown"></i><br><small>Luxe (60 DA)</small></div>
                 </div>
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span id="p-dist" class="small text-secondary">0.0 km</span>
-                    <span class="price-chip" id="p-price">0 DA</span>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <span id="p-dist" class="text-secondary">0.0 km</span>
+                    <span class="price-tag" id="p-price">0 DA</span>
                 </div>
-                <button class="btn-godz" onclick="requestRide()">REQUEST RIDE</button>
+                <button class="btn-godz" onclick="requestRide()">BOOK NOW</button>
             </div>
-            <div id="p-searching" class="d-none text-center py-3">
-                <div class="radar"></div>
-                <h5 class="fw-bold">Finding a Driver...</h5>
+            <div id="p-searching" class="d-none text-center py-4">
+                <div class="spinner-border text-success mb-3" style="width: 3rem; height: 3rem;"></div>
+                <h5>Searching for Drivers...</h5>
                 <button class="btn-cancel" onclick="cancelRide()">STOP SEARCH</button>
             </div>
-            <div id="p-active" class="d-none text-center py-2">
-                <h6 class="text-success fw-bold mb-0" id="p-driver-name">Driver Matched!</h6>
-                <small class="text-secondary">Tracking car on map...</small>
+            <div id="p-active" class="d-none text-center">
+                <h5 class="text-success fw-bold" id="p-status">Driver Matched!</h5>
+                <p class="small text-secondary">Follow the car icon on map</p>
             </div>
         </div>
     </div>
@@ -116,13 +90,8 @@
 <!-- Driver UI -->
 <div id="ui-driver" class="ui-layer fixed-bottom d-none">
     <div class="glass-panel mx-3 mb-4" style="max-height: 50vh; overflow-y: auto;">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="fw-bold m-0"><i class="fa fa-radar me-2 text-success"></i>AVAILABLE JOBS</h6>
-            <button class="btn btn-sm btn-outline-danger" onclick="logout()">Logout</button>
-        </div>
-        <div id="d-list">
-            <p class="text-center text-secondary small py-4">Waiting for requests...</p>
-        </div>
+        <h6 class="fw-bold mb-4">LIVE REQUESTS</h6>
+        <div id="d-list"><p class="text-center text-secondary small py-4">Scanning...</p></div>
     </div>
 </div>
 
@@ -132,29 +101,25 @@
 <script>
     const API = "https://script.google.com/macros/s/AKfycbyWiGY0O8XTAwq_DdjuUBi3yXboYW5M6nBlGM5o0vjrJmJY5sEfeXrQcbLfYuxL0S5dIQ/exec";
     let user = JSON.parse(localStorage.getItem('godz_user'));
-    let map, uMark, dMark, route, rideId, destCoords, vMode = 'eco', role = 'passenger';
+    let map, uMark, dMark, route, rideId, destData, vMode = 'eco', role = 'passenger';
 
     window.onload = () => { if(user) startApp(); };
 
     function setRole(r) {
         role = r;
-        document.getElementById('role-p').classList.toggle('active-role', r === 'passenger');
-        document.getElementById('role-d').classList.toggle('active-role', r === 'driver');
+        document.getElementById('role-p').classList.toggle('active', r === 'passenger');
+        document.getElementById('role-d').classList.toggle('active', r === 'driver');
     }
 
     async function handleAuth() {
         const data = { name: document.getElementById('a-name').value, phone: document.getElementById('a-phone').value, pass: document.getElementById('a-pass').value, role: role };
-        if(!data.phone || !data.pass) return alert("Fill all fields");
         const res = await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'register', data }) });
         const json = await res.json();
-        if(json.status === 'success') {
-            localStorage.setItem('godz_user', JSON.stringify(json.user));
-            location.reload();
-        }
+        if(json.status === 'success') { localStorage.setItem('godz_user', JSON.stringify(json.user)); location.reload(); }
     }
 
     function startApp() {
-        document.getElementById('auth-screen').style.transform = "translateY(-100%)";
+        document.getElementById('auth-screen').classList.add('d-none');
         document.getElementById(user.role === 'passenger' ? 'ui-passenger' : 'ui-driver').classList.remove('d-none');
         
         navigator.geolocation.getCurrentPosition(pos => {
@@ -165,14 +130,85 @@
             
             map.on('click', async e => {
                 if(user.role === 'passenger') {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
-                    const data = await res.json();
-                    selectDest({ lat: e.latlng.lat, lon: e.latlng.lng, display_name: data.display_name });
+                    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
+                    const d = await r.json();
+                    selectDest({ lat: e.latlng.lat, lon: e.latlng.lng, display_name: d.display_name });
                 }
             });
 
             setInterval(reportLoc, 10000);
             if(user.role === 'driver') pollJobs();
+        });
+    }
+
+    function selectDest(p) {
+        document.getElementById('p-suggest').style.display = 'none';
+        document.getElementById('p-input').value = p.display_name.split(',')[0];
+        destData = { lat: p.lat, lon: p.lon, name: p.display_name };
+        if(route) map.removeControl(route);
+        
+        route = L.Routing.control({
+            waypoints: [ L.latLng(uMark.getLatLng().lat, uMark.getLatLng().lng), L.latLng(p.lat, p.lon) ],
+            lineOptions: { styles: [{ color: '#00FF41', opacity: 0.8, weight: 7 }] },
+            createMarker: () => null, // Hides arrows
+            show: false, // HIDES THE GIANT LIST
+            addWaypoints: false
+        }).on('routesfound', e => {
+            const dist = e.routes[0].summary.totalDistance / 1000;
+            const price = Math.max(150, Math.round(dist * (vMode === 'eco' ? 30 : 60)));
+            document.getElementById('p-price').innerText = price + " DA";
+            document.getElementById('p-dist').innerText = dist.toFixed(1) + " km";
+            destData.price = price;
+        }).addTo(map);
+    }
+
+    async function requestRide() {
+        if(!destData) return alert("Select Destination");
+        document.getElementById('p-idle').classList.add('d-none');
+        document.getElementById('p-searching').classList.remove('d-none');
+        const res = await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'postRide', data: { ...destData, phone: user.phone, pickupLat: uMark.getLatLng().lat, pickupLng: uMark.getLatLng().lng } })});
+        rideId = (await res.json()).rideId;
+        sync();
+    }
+
+    async function pollJobs() {
+        const res = await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'getJobs' }) });
+        const json = await res.json();
+        document.getElementById('d-list').innerHTML = json.jobs.map(j => `
+            <div class="job-card">
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="fw-bold">${j.name.split(',')[0]}</span>
+                    <span class="badge bg-success">${j.price} DA</span>
+                </div>
+                <button class="btn-godz py-2" style="font-size:14px" onclick="acceptJob('${j.id}')">ACCEPT</button>
+            </div>
+        `).join('') || '<p class="text-center text-secondary small py-4">Scanning...</p>';
+        setTimeout(pollJobs, 5000);
+    }
+
+    async function acceptJob(id) {
+        const res = await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'acceptRide', data: { rideId: id, driverPhone: user.phone, driverName: user.name } }) });
+        if((await res.json()).status === 'success') { rideId = id; sync(); alert("Pickup Client!"); }
+    }
+
+    async function sync() {
+        const res = await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'sync', data: { rideId } }) });
+        const json = await res.json();
+        if(json.ride && json.ride.status === 'accepted') {
+            document.getElementById('p-searching').classList.add('d-none');
+            document.getElementById('p-active').classList.remove('d-none');
+            if(json.driverLoc) {
+                if(!dMark) dMark = L.marker([json.driverLoc.lat, json.driverLoc.lng], {icon: L.divIcon({html:'<i class="fa fa-car text-success" style="font-size:25px"></i>'})}).addTo(map);
+                else dMark.setLatLng([json.driverLoc.lat, json.driverLoc.lng]);
+            }
+        }
+        setTimeout(sync, 5000);
+    }
+
+    function reportLoc() {
+        navigator.geolocation.getCurrentPosition(p => {
+            uMark.setLatLng([p.coords.latitude, p.coords.longitude]);
+            fetch(API, { method: 'POST', body: JSON.stringify({ action: 'updateLoc', data: { phone: user.phone, lat: p.coords.latitude, lng: p.coords.longitude } }) });
         });
     }
 
@@ -184,101 +220,15 @@
         resDiv.innerHTML = ''; resDiv.style.display = 'block';
         data.forEach(p => {
             const d = document.createElement('div');
-            d.className = 'suggest-item';
+            d.className = 'p-3 border-bottom text-white small';
             d.innerText = p.display_name.split(',').slice(0,2).join(',');
             d.onclick = () => selectDest(p);
             resDiv.appendChild(d);
         });
     }
 
-    function selectDest(p) {
-        document.getElementById('p-suggest').style.display = 'none';
-        document.getElementById('p-input').value = p.display_name.split(',')[0];
-        destCoords = { lat: p.lat, lon: p.lon, name: p.display_name };
-        
-        if(route) map.removeControl(route);
-        
-        // FIX: Disable default arrows/markers
-        route = L.Routing.control({
-            waypoints: [ L.latLng(uMark.getLatLng().lat, uMark.getLatLng().lng), L.latLng(p.lat, p.lon) ],
-            lineOptions: { styles: [{ color: '#00FF41', opacity: 0.8, weight: 6 }] },
-            createMarker: () => null, // This hides the weird arrows
-            addWaypoints: false
-        }).on('routesfound', e => {
-            const dist = e.routes[0].summary.totalDistance / 1000;
-            const price = Math.max(150, Math.round(dist * (vMode === 'eco' ? 30 : 60)));
-            document.getElementById('p-price').innerText = price + " DA";
-            document.getElementById('p-dist').innerText = dist.toFixed(1) + " km";
-            destCoords.price = price;
-        }).addTo(map);
-    }
-
-    async function requestRide() {
-        if(!destCoords) return alert("Select destination!");
-        document.getElementById('p-idle').classList.add('d-none');
-        document.getElementById('p-searching').classList.remove('d-none');
-        const res = await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'postRide', data: { ...destCoords, phone: user.phone, pickupLat: uMark.getLatLng().lat, pickupLng: uMark.getLatLng().lng } })});
-        rideId = (await res.json()).rideId;
-        sync();
-    }
-
-    async function cancelRide() {
-        await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'cancelRide', data: { rideId } }) });
-        location.reload();
-    }
-
-    async function pollJobs() {
-        const res = await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'getJobs' }) });
-        const json = await res.json();
-        document.getElementById('d-list').innerHTML = json.jobs.map(j => `
-            <div class="job-card">
-                <div class="d-flex justify-content-between mb-2">
-                    <span class="fw-bold">${j.name.split(',')[0]}</span>
-                    <span class="badge bg-success">${j.price} DA</span>
-                </div>
-                <button class="btn-godz py-2" style="font-size:14px" onclick="acceptJob('${j.id}')">ACCEPT JOB</button>
-            </div>
-        `).join('') || '<p class="text-center text-secondary small py-4">Scanning for GoDz requests...</p>';
-        setTimeout(pollJobs, 5000);
-    }
-
-    async function acceptJob(id) {
-        const res = await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'acceptRide', data: { rideId: id, driverPhone: user.phone, driverName: user.name } }) });
-        const json = await res.json();
-        if(json.status === 'success') { rideId = id; sync(); alert("Pickup client on map!"); }
-        else alert(json.message);
-    }
-
-    async function sync() {
-        const res = await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'sync', data: { rideId } }) });
-        const json = await res.json();
-        if(json.ride && json.ride.status === 'accepted') {
-            document.getElementById('p-searching').classList.add('d-none');
-            document.getElementById('p-active').classList.remove('d-none');
-            document.getElementById('p-driver-name').innerText = "Driver: " + json.ride.driverName;
-            if(json.driverLoc) {
-                if(!dMark) dMark = L.marker([json.driverLoc.lat, json.driverLoc.lng], {icon: L.divIcon({html: '<i class="fa fa-car" style="color:#00FF41;font-size:25px"></i>', className:''})}).addTo(map);
-                else dMark.setLatLng([json.driverLoc.lat, json.driverLoc.lng]);
-            }
-        }
-        if(json.ride && json.ride.status !== 'canceled') setTimeout(sync, 5000);
-    }
-
-    function reportLoc() {
-        navigator.geolocation.getCurrentPosition(p => {
-            uMark.setLatLng([p.coords.latitude, p.coords.longitude]);
-            fetch(API, { method: 'POST', body: JSON.stringify({ action: 'updateLoc', data: { phone: user.phone, lat: p.coords.latitude, lng: p.coords.longitude } }) });
-        });
-    }
-
-    function setV(type) {
-        vMode = type;
-        document.getElementById('v-eco').classList.toggle('active', type === 'eco');
-        document.getElementById('v-luxe').classList.toggle('active', type === 'luxe');
-        if(destCoords) selectDest(destCoords);
-    }
-    
-    function logout() { localStorage.clear(); location.reload(); }
+    function setV(t) { vMode = t; document.getElementById('v-eco').classList.toggle('active', t==='eco'); document.getElementById('v-luxe').classList.toggle('active', t==='luxe'); if(destData) selectDest(destData); }
+    function cancelRide() { fetch(API, { method: 'POST', body: JSON.stringify({ action: 'cancelRide', data: { rideId } }) }); location.reload(); }
 </script>
 </body>
 </html>
