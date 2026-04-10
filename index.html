@@ -3,203 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GoDz | Elite Algeria</title>
+    <title>GoDz | Algerian Elite Rides</title>
+    <!-- Libraries -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        :root { --green: #00FF41; --bg: #0D0D0D; --card: #1A1A1A; }
-        body { background: var(--bg); color: white; font-family: sans-serif; overflow: hidden; }
-        #map { height: 100vh; width: 100%; position: fixed; z-index: 1; }
+        :root { --green: #00FF41; --bg: #0A0A0A; --glass: rgba(26, 26, 26, 0.95); }
+        body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; overflow: hidden; height: 100vh; }
+        #map { height: 100vh; width: 100%; position: fixed; z-index: 1; filter: contrast(1.1) brightness(0.8); }
         
-        /* UI Overlays */
-        .overlay { position: absolute; z-index: 10; width: 100%; pointer-events: none; }
+        /* UI Styling */
+        .overlay { position: absolute; z-index: 1000; width: 100%; pointer-events: none; }
         .overlay * { pointer-events: auto; }
         
-        .search-container { top: 20px; padding: 0 15px; }
-        .search-box { background: var(--card); border-radius: 12px; padding: 10px; border: 1px solid #333; }
-        .results-dropdown { background: var(--card); border-radius: 0 0 12px 12px; max-height: 200px; overflow-y: auto; display: none; }
-        .result-item { padding: 10px; border-bottom: 1px solid #333; cursor: pointer; font-size: 14px; }
+        .godz-card { background: var(--glass); backdrop-filter: blur(15px); border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); padding: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.6); }
         
-        .bottom-sheet { bottom: 0; background: var(--card); border-radius: 25px 25px 0 0; padding: 20px; box-shadow: 0 -10px 30px rgba(0,0,0,0.5); }
+        .btn-godz { background: var(--green); color: black; font-weight: 800; border: none; border-radius: 16px; padding: 16px; width: 100%; font-size: 1.1rem; }
+        .price-tag { background: var(--green); color: black; padding: 4px 12px; border-radius: 10px; font-weight: 900; font-size: 1.3rem; }
         
-        .price-badge { background: var(--green); color: black; font-weight: 900; padding: 5px 15px; border-radius: 8px; font-size: 20px; }
-        .btn-godz { background: var(--green); color: black; font-weight: 800; border-radius: 12px; border: none; width: 100%; padding: 15px; }
+        /* Search suggest styling */
+        .search-results { background: #111; border-radius: 12px; max-height: 250px; overflow-y: auto; display: none; margin-top: 8px; border: 1px solid #333; }
+        .result-item { padding: 14px; border-bottom: 1px solid #222; cursor: pointer; font-size: 0.9rem; }
+        .result-item:hover { background: #222; }
+
+        #auth-screen { background: var(--bg); position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; }
         
-        .driver-card { background: rgba(255,255,255,0.05); border: 1px solid #333; border-radius: 15px; padding: 15px; margin-bottom: 10px; }
+        /* Car Marker animation */
+        .car-icon { font-size: 28px; transition: transform 0.5s linear; text-shadow: 0 0 10px var(--green); }
         
-        /* Icons */
-        .car-icon { font-size: 24px; filter: drop-shadow(0 0 5px var(--green)); }
+        audio { display: none; }
     </style>
 </head>
 <body>
 
 <div id="map"></div>
+<audio id="ping-snd" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"></audio>
 
-<!-- Passenger View -->
-<div id="ui-passenger" class="overlay search-container d-none">
-    <div class="search-box">
-        <input type="text" id="address-input" class="form-control bg-transparent border-0 text-white" placeholder="Where to?" oninput="searchPlaces(this.value)">
-        <div id="search-results" class="results-dropdown"></div>
+<!-- Auth -->
+<div id="auth-screen">
+    <div class="godz-card w-100 mx-4" style="max-width: 400px;">
+        <div class="text-center mb-4">
+            <h1 style="color: var(--green); font-weight: 900; letter-spacing: -2px; font-size: 3rem;">GoDz</h1>
+            <p class="text-secondary small">The Smartest Way to Move in DZ</p>
+        </div>
+        <input type="text" id="a-name" class="form-control bg-dark text-white border-0 mb-3 p-3" placeholder="Full Name">
+        <input type="tel" id="a-phone" class="form-control bg-dark text-white border-0 mb-3 p-3" placeholder="Phone Number">
+        <input type="password" id="a-pass" class="form-control bg-dark text-white border-0 mb-3 p-3" placeholder="Password">
+        <select id="a-role" class="form-select bg-dark text-white border-0 mb-4 p-3">
+            <option value="passenger">I am a Passenger</option>
+            <option value="driver">I am a Driver</option>
+        </select>
+        <button class="btn-godz mb-2" onclick="auth('register')">GET STARTED</button>
+        <button class="btn btn-link text-white-50 w-100 btn-sm" onclick="auth('login')">Already have an account? Sign In</button>
+    </div>
+</div>
+
+<!-- Passenger UI -->
+<div id="ui-passenger" class="overlay d-none">
+    <div class="p-3 mt-2">
+        <div class="godz-card">
+            <div class="d-flex align-items-center">
+                <i class="fa fa-search text-secondary me-2"></i>
+                <input type="text" id="p-search" class="form-control bg-transparent border-0 text-white" placeholder="Where are you going?" oninput="searchPlaces(this.value)">
+            </div>
+            <div id="p-results" class="search-results"></div>
+        </div>
     </div>
     
-    <div class="bottom-sheet fixed-bottom" id="p-sheet">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <span class="text-secondary">Estimated Price</span>
-            <span class="price-badge" id="price-display">-- DA</span>
-        </div>
-        <button id="main-btn" class="btn-godz" onclick="requestRide()">REQUEST GODZ</button>
-        <div id="ride-status" class="mt-3 text-center d-none">
-            <div class="spinner-border text-success spinner-border-sm me-2"></div>
-            <span id="status-text">Finding Driver...</span>
+    <div class="fixed-bottom p-3 mb-2">
+        <div class="godz-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-secondary">Total Fare</span>
+                <span class="price-tag" id="p-price">0 DA</span>
+            </div>
+            <button class="btn-godz" id="btn-request" onclick="requestRide()">CONFIRM BOOKING</button>
+            <div id="p-waiting" class="text-center d-none py-2">
+                <div class="spinner-border text-success mb-2"></div>
+                <p class="small mb-0">Searching for nearby GoDz Drivers...</p>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Driver View -->
+<!-- Driver UI -->
 <div id="ui-driver" class="overlay fixed-bottom d-none">
-    <div class="bottom-sheet" style="height: 40vh; overflow-y: scroll;">
-        <h5 class="fw-bold mb-3">Available Jobs</h5>
-        <div id="job-list"></div>
+    <div class="godz-card mx-3 mb-4" style="max-height: 50vh; overflow-y: auto;">
+        <h5 class="fw-bold mb-3"><i class="fa fa-bolt text-warning me-2"></i>Live Ride Requests</h5>
+        <div id="d-jobs"></div>
     </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbypKALOcZ2mm7vPqii_Lzddkm4W5AiPoYc3Hm4s60QHlyxa1VDqKlXOw3p5qqw1K5Hpmw/exec";
+    const API = "https://script.google.com/macros/s/AKfycbypKALOcZ2mm7vPqii_Lzddkm4W5AiPoYc3Hm4s60QHlyxa1VDqKlXOw3p5qqw1K5Hpmw/exec";
     let user = JSON.parse(localStorage.getItem('godz_user'));
-    let map, userMarker, driverMarker, destMarker, currentRideId = null;
-    let selectedDest = null;
+    let map, uMark, dMark, route, rideId, destData;
 
-    window.onload = () => {
-        if(!user) { /* Redirect to login or show auth logic here */ return; }
-        initApp();
-    };
+    window.onload = () => { if(user) startApp(); };
 
-    function initApp() {
-        if(user.role === 'passenger') document.getElementById('ui-passenger').classList.remove('d-none');
-        else document.getElementById('ui-driver').classList.remove('d-none');
+    async function call(action, data) {
+        const r = await fetch(API, { method: 'POST', body: JSON.stringify({ action, data }) });
+        return await r.json();
+    }
+
+    async function auth(action) {
+        const data = { name: document.getElementById('a-name').value, phone: document.getElementById('a-phone').value, pass: document.getElementById('a-pass').value, role: document.getElementById('a-role').value };
+        const res = await call(action, data);
+        if(res.status === 'success') {
+            localStorage.setItem('godz_user', JSON.stringify(res.user || {phone: data.phone, role: data.role, name: data.name}));
+            location.reload();
+        } else alert("Auth failed. Check details.");
+    }
+
+    function startApp() {
+        document.getElementById('auth-screen').remove();
+        document.getElementById(user.role === 'passenger' ? 'ui-passenger' : 'ui-driver').classList.remove('d-none');
         
         navigator.geolocation.getCurrentPosition(pos => {
-            map = L.map('map', { zoomControl: false }).setView([pos.coords.latitude, pos.coords.longitude], 15);
+            const { latitude, longitude } = pos.coords;
+            map = L.map('map', { zoomControl: false }).setView([latitude, longitude], 15);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+            uMark = L.marker([latitude, longitude]).addTo(map);
             
-            userMarker = L.marker([pos.coords.latitude, pos.coords.longitude]).addTo(map);
-            
-            // Start location reporting
-            setInterval(() => reportLocation(pos.coords.latitude, pos.coords.longitude), 10000);
+            // Location reporting & Driver job polling
+            setInterval(() => reportLoc(), 10000);
             if(user.role === 'driver') pollJobs();
         });
     }
 
-    // --- Place Search Logic ---
-    async function searchPlaces(query) {
-        if(query.length < 3) return;
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&countrycodes=dz`);
-        const data = await res.json();
-        const container = document.getElementById('search-results');
-        container.innerHTML = '';
-        container.style.display = 'block';
-        
-        data.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'result-item';
-            div.innerText = item.display_name;
-            div.onclick = () => selectDestination(item);
-            container.appendChild(div);
+    async function searchPlaces(q) {
+        if(q.length < 3) return;
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&countrycodes=dz`);
+        const data = await r.json();
+        const resDiv = document.getElementById('p-results');
+        resDiv.innerHTML = ''; resDiv.style.display = 'block';
+        data.forEach(p => {
+            const d = document.createElement('div');
+            d.className = 'result-item';
+            d.innerText = p.display_name;
+            d.onclick = () => selectDest(p);
+            resDiv.appendChild(d);
         });
     }
 
-    function selectDestination(item) {
-        document.getElementById('address-input').value = item.display_name;
-        document.getElementById('search-results').style.display = 'none';
-        selectedDest = { lat: parseFloat(item.lat), lng: parseFloat(item.lon), name: item.display_name };
+    function selectDest(p) {
+        document.getElementById('p-results').style.display = 'none';
+        document.getElementById('p-search').value = p.display_name.split(',')[0];
+        destData = { lat: p.lat, lon: p.lon, name: p.display_name };
         
-        if(destMarker) map.removeLayer(destMarker);
-        destMarker = L.marker([selectedDest.lat, selectedDest.lng], {icon: L.divIcon({html: '📍'})}).addTo(map);
-        
-        // Calculate Distance and Price
-        const dist = map.distance(userMarker.getLatLng(), [selectedDest.lat, selectedDest.lng]) / 1000;
-        const price = Math.round(150 + (dist * 50));
-        document.getElementById('price-display').innerText = price + " DA";
-        selectedDest.price = price;
+        if(route) map.removeControl(route);
+        route = L.Routing.control({
+            waypoints: [ L.latLng(uMark.getLatLng().lat, uMark.getLatLng().lng), L.latLng(p.lat, p.lon) ],
+            lineOptions: { styles: [{ color: '#00FF41', weight: 7 }] },
+            createMarker: () => null
+        }).on('routesfound', e => {
+            const dist = e.routes[0].summary.totalDistance / 1000;
+            const fare = Math.round(dist * 30); // 30 DA Per KM
+            const finalFare = fare < 150 ? 150 : fare; // Min 150 DA
+            document.getElementById('p-price').innerText = finalFare + " DA";
+            destData.price = finalFare;
+        }).addTo(map);
     }
 
-    // --- Ride Lifecycle ---
     async function requestRide() {
-        if(!selectedDest) return alert("Select a place first!");
-        
-        const res = await fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({
-                action: 'postRide',
-                data: {
-                    phone: user.phone,
-                    name: user.name,
-                    pickupLat: userMarker.getLatLng().lat,
-                    pickupLng: userMarker.getLatLng().lng,
-                    destLat: selectedDest.lat,
-                    destLng: selectedDest.lng,
-                    destName: selectedDest.name,
-                    price: selectedDest.price
-                }
-            })
-        });
-        const json = await res.json();
-        if(json.status === 'success') {
-            currentRideId = json.rideId;
-            document.getElementById('main-btn').style.display = 'none';
-            document.getElementById('ride-status').classList.remove('d-none');
-            syncRide();
-        }
+        if(!destData) return alert("Please select a place first!");
+        document.getElementById('btn-request').style.display = 'none';
+        document.getElementById('p-waiting').classList.remove('d-none');
+        const res = await call('postRide', { phone: user.phone, name: user.name, lat: uMark.getLatLng().lat, lng: uMark.getLatLng().lng, destName: destData.name, destLat: destData.lat, destLon: destData.lon, price: destData.price });
+        rideId = res.rideId;
+        sync();
     }
 
-    async function syncRide() {
-        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'syncRide', data: { rideId: currentRideId } }) });
-        const json = await res.json();
-        
-        if(json.status === 'success') {
-            if(json.ride.status === 'accepted' && json.driverLoc) {
-                document.getElementById('status-text').innerText = "Driver is tracking your location...";
-                if(!driverMarker) driverMarker = L.marker([json.driverLoc.lat, json.driverLoc.lng], {icon: L.divIcon({html: '🚗', className: 'car-icon'})}).addTo(map);
-                else driverMarker.setLatLng([json.driverLoc.lat, json.driverLoc.lng]);
-                
-                // Zoom map to show both
-                const group = new L.featureGroup([userMarker, driverMarker]);
-                map.fitBounds(group.getBounds().pad(0.2));
-            }
-            setTimeout(syncRide, 5000);
-        }
-    }
-
-    // --- Driver Logic ---
     async function pollJobs() {
-        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'getJobs' }) });
-        const json = await res.json();
-        const container = document.getElementById('job-list');
-        container.innerHTML = json.jobs.map(j => `
-            <div class="driver-card">
+        const res = await call('getJobs', {});
+        const container = document.getElementById('d-jobs');
+        if(res.jobs.length > 0) document.getElementById('ping-snd').play();
+        container.innerHTML = res.jobs.map(j => `
+            <div class="job-card mb-2 p-3 border-0 bg-dark rounded-4">
                 <div class="d-flex justify-content-between">
-                    <span><b>${j.destName.split(',')[0]}</b></span>
+                    <span class="small text-secondary">To: ${j.destName.split(',')[0]}</span>
                     <span class="text-success fw-bold">${j.price} DA</span>
                 </div>
-                <button class="btn btn-sm btn-success w-100 mt-2" onclick="acceptJob('${j.id}')">ACCEPT JOB</button>
+                <button class="btn-godz py-2 mt-2" style="font-size:0.9rem" onclick="acceptJob('${j.id}')">ACCEPT RIDE</button>
             </div>
-        `).join('') || '<p class="text-secondary">No riders nearby...</p>';
-        setTimeout(pollJobs, 7000);
+        `).join('') || '<p class="text-secondary small text-center">Scanning for passengers...</p>';
+        setTimeout(pollJobs, 10000);
     }
 
     async function acceptJob(id) {
-        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'acceptRide', data: { rideId: id, driverPhone: user.phone } }) });
-        const json = await res.json();
-        if(json.status === 'success') {
-            currentRideId = id;
-            alert("Job Accepted! Head to pickup.");
-            syncRide();
-        }
+        const res = await call('acceptRide', { rideId: id, driverPhone: user.phone, driverName: user.name });
+        if(res.status === 'success') { rideId = id; sync(); alert("Go to the passenger on map!"); }
     }
 
-    async function reportLocation(lat, lng) {
-        fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'updateLocation', data: { phone: user.phone, lat, lng } }) });
+    async function sync() {
+        const res = await call('sync', { rideId });
+        if(res.ride && res.ride.status === 'accepted') {
+            document.getElementById('p-waiting').innerHTML = `<h5 class="text-success"><i class="fa fa-check-circle me-2"></i>Driver is coming!</h5>`;
+            if(res.driverLoc) {
+                if(!dMark) dMark = L.marker([res.driverLoc.lat, res.driverLoc.lng], { icon: L.divIcon({html: '<i class="fa fa-car car-icon" style="color:#00FF41"></i>', className:'c-icon'})}).addTo(map);
+                else dMark.setLatLng([res.driverLoc.lat, res.driverLoc.lng]);
+            }
+        }
+        setTimeout(sync, 8000);
+    }
+
+    function reportLoc() {
+        navigator.geolocation.getCurrentPosition(p => {
+            uMark.setLatLng([p.coords.latitude, p.coords.longitude]);
+            call('updateLoc', { phone: user.phone, lat: p.coords.latitude, lng: p.coords.longitude });
+        });
     }
 </script>
 </body>
