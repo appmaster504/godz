@@ -3,169 +3,218 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GoDz | Tri9ek, b'shwaya</title>
-    <!-- CSS: Electric Green & Charcoal -->
+    <title>GoDz | Elite Move</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --green: #00FF41; --bg: #0D0D0D; --card: #1A1A1A; --text: #FFFFFF; }
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 0; overflow-x: hidden; }
-        .godz-card { background: var(--card); border-radius: 20px; padding: 20px; margin: 15px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .btn-godz { background: var(--green); color: black; font-weight: 800; border-radius: 12px; border: none; padding: 15px; width: 100%; transition: 0.3s; }
-        .btn-godz:active { transform: scale(0.98); }
-        input, select { background: #222 !important; border: 1px solid #444 !important; color: white !important; padding: 12px !important; border-radius: 10px !important; margin-bottom: 15px; }
-        #map { height: 100vh; width: 100%; position: fixed; top: 0; z-index: 1; }
-        .ui-layer { position: relative; z-index: 10; pointer-events: none; }
-        .ui-layer * { pointer-events: auto; }
-        .bottom-nav { position: fixed; bottom: 0; width: 100%; height: 70px; background: #111; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #333; z-index: 100; }
-        .nav-item { color: #555; font-size: 24px; cursor: pointer; }
-        .nav-item.active { color: var(--green); }
-        .loader { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); }
-        .pulse { width: 80px; height: 80px; background: var(--green); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: black; font-weight: bold; font-size: 2rem; box-shadow: 0 0 20px var(--green); animation: p 1.5s infinite; }
-        @keyframes p { 0%, 100% { transform: scale(0.9); } 50% { transform: scale(1.1); } }
+        :root { --green: #00FF41; --bg: #080808; --glass: rgba(25, 25, 25, 0.95); --border: rgba(255,255,255,0.1); }
+        body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; overflow: hidden; height: 100vh; }
+        
+        /* Map Focus */
+        #map { height: 100vh; width: 100%; position: fixed; z-index: 1; filter: grayscale(0.5) brightness(0.8); }
+        
+        /* UI Layers */
+        .app-overlay { position: relative; z-index: 10; height: 100vh; display: flex; flex-direction: column; pointer-events: none; }
+        .app-overlay * { pointer-events: auto; }
+
+        /* Search Bar */
+        .search-container { padding: 20px; background: linear-gradient(to bottom, rgba(8,8,8,1), rgba(8,8,8,0)); }
+        .search-box { background: var(--glass); border: 1px solid var(--border); border-radius: 15px; padding: 12px 20px; display: flex; align-items: center; backdrop-filter: blur(10px); }
+        .search-box input { background: transparent; border: none; color: white; width: 100%; margin-left: 10px; outline: none; font-size: 16px; }
+
+        /* Bottom Sheet */
+        .bottom-sheet { background: var(--glass); border-radius: 30px 30px 0 0; padding: 25px; border-top: 1px solid var(--border); backdrop-filter: blur(20px); transition: 0.4s transform; position: fixed; bottom: 0; width: 100%; }
+        
+        /* Buttons */
+        .btn-godz { background: var(--green); color: black; font-weight: 800; border-radius: 16px; border: none; padding: 18px; width: 100%; font-size: 18px; box-shadow: 0 10px 20px rgba(0, 255, 65, 0.2); }
+        
+        /* Job Cards */
+        .job-card { background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 20px; padding: 15px; margin-bottom: 10px; }
+        
+        /* Auth Screen */
+        .auth-screen { background: var(--bg); position: fixed; inset: 0; z-index: 1000; padding: 40px 20px; display: flex; flex-direction: column; justify-content: center; }
+        
+        /* Icons */
+        .pulse-marker { width: 12px; height: 12px; background: var(--green); border-radius: 50%; box-shadow: 0 0 0 10px rgba(0,255,65,0.2); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0px rgba(0,255,65,0.4); } 70% { box-shadow: 0 0 0 15px rgba(0,255,65,0); } 100% { box-shadow: 0 0 0 0px rgba(0,255,65,0); } }
     </style>
 </head>
 <body>
 
 <div id="app">
-    <!-- View: Loading -->
-    <div id="v-load" class="loader">
-        <div class="pulse">G</div>
-        <p class="mt-4 text-secondary">GoDz Loading...</p>
+    <!-- Screen: Auth -->
+    <div id="v-auth" class="auth-screen">
+        <h1 class="display-3 fw-bold mb-1" style="color: var(--green);">GoDz</h1>
+        <p class="text-secondary mb-5">Your road, simplified.</p>
+        <div class="mb-3">
+            <input type="tel" id="phone" class="form-control py-3 bg-dark border-0 text-white" placeholder="Phone Number">
+        </div>
+        <div class="mb-4">
+            <input type="password" id="pass" class="form-control py-3 bg-dark border-0 text-white" placeholder="Password">
+        </div>
+        <select id="role" class="form-select py-3 bg-dark border-0 text-white mb-4">
+            <option value="passenger">I am a Passenger</option>
+            <option value="driver">I am a Driver</option>
+        </select>
+        <button class="btn-godz mb-3" onclick="auth('login')">SIGN IN</button>
+        <button class="btn btn-link text-white-50" onclick="auth('register')">New to GoDz? Create Account</button>
     </div>
 
-    <!-- View: Login/Signup -->
-    <div id="v-auth" class="d-none container py-5">
-        <div class="text-center mb-5">
-            <h1 style="color:var(--green); font-weight:900; font-size:3.5rem;">GoDz</h1>
-            <p class="text-secondary">Tri9ek, b'shwaya</p>
-        </div>
-        <div class="godz-card">
-            <input type="tel" id="phone" placeholder="Phone Number">
-            <input type="password" id="pass" placeholder="Password">
-            <select id="role">
-                <option value="passenger">Passenger</option>
-                <option value="driver">Driver</option>
-            </select>
-            <button class="btn-godz" onclick="auth('login')">LOGIN</button>
-            <button class="btn btn-link w-100 text-secondary mt-3" onclick="auth('register')">Create Account</button>
-        </div>
-    </div>
-
-    <!-- View: Map (Passenger/Driver Overlay) -->
+    <!-- Screen: Main -->
     <div id="v-main" class="d-none">
         <div id="map"></div>
-        <div class="ui-layer">
-            <div id="p-controls" class="fixed-bottom mb-5 d-none">
-                <div class="godz-card">
-                    <input type="text" id="dest" placeholder="Where to?">
-                    <button class="btn-godz" onclick="requestRide()">REQUEST RIDE</button>
+        <div class="app-overlay">
+            <!-- Search Bar (Top) -->
+            <div class="search-container" id="passenger-search">
+                <div class="search-box">
+                    <i class="fas fa-search text-secondary"></i>
+                    <input type="text" id="dest-input" placeholder="Where are we going?" onfocus="showSearch()">
                 </div>
             </div>
-            <div id="d-controls" class="container mt-3 d-none">
-                <div id="job-list"></div>
+
+            <!-- Bottom UI (Passenger) -->
+            <div class="bottom-sheet" id="passenger-sheet">
+                <div id="p-state-idle">
+                    <h4 class="fw-bold mb-3">Ready to Move?</h4>
+                    <button class="btn-godz" onclick="requestRide()">CONFIRM GODZ</button>
+                </div>
+                <div id="p-state-searching" class="d-none text-center py-4">
+                    <div class="spinner-border text-success mb-3"></div>
+                    <h5>Searching for Drivers...</h5>
+                    <button class="btn btn-sm btn-outline-danger mt-3" onclick="cancelRide()">Cancel</button>
+                </div>
+                <div id="p-state-confirmed" class="d-none">
+                    <h5 class="text-success fw-bold">Driver is Coming!</h5>
+                    <p id="driver-info" class="mb-0 text-secondary"></p>
+                </div>
+            </div>
+
+            <!-- Bottom UI (Driver) -->
+            <div class="bottom-sheet d-none" id="driver-sheet" style="height: 50vh; overflow-y: scroll;">
+                <h5 class="fw-bold mb-3">Nearby Requests</h5>
+                <div id="job-list">
+                    <p class="text-secondary small">Scanning for passengers...</p>
+                </div>
             </div>
         </div>
-        <nav class="bottom-nav">
-            <div class="nav-item active"><i class="fas fa-home"></i></div>
-            <div class="nav-item" onclick="logout()"><i class="fas fa-sign-out-alt"></i></div>
-        </nav>
     </div>
 </div>
 
+<!-- Audio for notifications -->
+<audio id="snd-ping" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"></audio>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbypKALOcZ2mm7vPqii_Lzddkm4W5AiPoYc3Hm4s60QHlyxa1VDqKlXOw3p5qqw1K5Hpmw/exec"; 
+    const API_URL = "https://script.google.com/macros/s/AKfycbypKALOcZ2mm7vPqii_Lzddkm4W5AiPoYc3Hm4s60QHlyxa1VDqKlXOw3p5qqw1K5Hpmw/exec";
     let user = JSON.parse(localStorage.getItem('godz_user'));
-    let map, userMarker;
+    let map, userMarker, currentRideId = null;
 
-    window.onload = () => {
-        if (user) showMain(); else showAuth();
-    };
-
-    async function callApi(action, data) {
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action, data })
-        });
-        return await response.json();
+    async function call(action, data) {
+        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action, data }) });
+        return await res.json();
     }
 
-    function showAuth() {
-        document.getElementById('v-load').classList.add('d-none');
-        document.getElementById('v-auth').classList.remove('d-none');
-    }
+    function playSound() { document.getElementById('snd-ping').play(); }
 
-    function showMain() {
-        document.getElementById('v-load').classList.add('d-none');
-        document.getElementById('v-auth').classList.add('d-none');
+    window.onload = () => { if(user) initApp(); };
+
+    function initApp() {
+        document.getElementById('v-auth').remove();
         document.getElementById('v-main').classList.remove('d-none');
         
-        initMap();
-        if (user.role === 'passenger') {
-            document.getElementById('p-controls').classList.remove('d-none');
-        } else {
-            document.getElementById('d-controls').classList.remove('d-none');
-            pollJobs();
-        }
-    }
-
-    async function auth(type) {
-        const data = {
-            phone: document.getElementById('phone').value,
-            pass: document.getElementById('pass').value,
-            role: document.getElementById('role').value,
-            name: "User"
-        };
-        const res = await callApi(type, data);
-        if (res.status === 'success') {
-            localStorage.setItem('godz_user', JSON.stringify(res.user));
-            user = res.user;
-            location.reload();
-        } else { alert(res.message); }
-    }
-
-    function initMap() {
+        // Map Setup
         navigator.geolocation.getCurrentPosition(pos => {
             const { latitude, longitude } = pos.coords;
             map = L.map('map', { zoomControl: false }).setView([latitude, longitude], 15);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-            userMarker = L.marker([latitude, longitude]).addTo(map);
+            userMarker = L.marker([latitude, longitude], { icon: L.divIcon({className: 'pulse-marker'}) }).addTo(map);
             
-            setInterval(() => {
-                callApi('updateLocation', { phone: user.phone, role: user.role, lat: latitude, lng: longitude });
-            }, 30000);
+            if(user.role === 'driver') {
+                document.getElementById('driver-sheet').classList.remove('d-none');
+                document.getElementById('passenger-search').classList.add('d-none');
+                document.getElementById('passenger-sheet').classList.add('d-none');
+                pollJobs();
+            }
         });
     }
 
+    // --- Passenger Logic ---
     async function requestRide() {
+        const dest = document.getElementById('dest-input').value;
+        if(!dest) return alert("Enter destination!");
+        
         navigator.geolocation.getCurrentPosition(async pos => {
-            const res = await callApi('postRide', {
+            const res = await call('postRide', {
                 phone: user.phone,
-                dest: document.getElementById('dest').value,
+                name: user.name,
+                dest: dest,
                 lat: pos.coords.latitude,
                 lng: pos.coords.longitude
             });
-            if (res.status === 'success') alert("GoDz Searching...");
+            if(res.status === 'success') {
+                currentRideId = res.rideId;
+                switchState('searching');
+                checkRideStatus();
+            }
         });
     }
 
+    async function checkRideStatus() {
+        if(!currentRideId) return;
+        const res = await call('checkStatus', { rideId: currentRideId });
+        if(res.ride.status === 'accepted') {
+            playSound();
+            switchState('confirmed');
+            document.getElementById('driver-info').innerText = `Driver: ${res.ride.driverName} is on the way!`;
+        } else {
+            setTimeout(checkRideStatus, 5000);
+        }
+    }
+
+    function switchState(state) {
+        document.getElementById('p-state-idle').classList.add('d-none');
+        document.getElementById('p-state-searching').classList.add('d-none');
+        document.getElementById('p-state-confirmed').classList.add('d-none');
+        document.getElementById(`p-state-${state}`).classList.remove('d-none');
+    }
+
+    // --- Driver Logic ---
     async function pollJobs() {
-        navigator.geolocation.getCurrentPosition(async pos => {
-            const res = await callApi('getJobs', { lat: pos.coords.latitude, lng: pos.coords.longitude });
-            const list = document.getElementById('job-list');
-            list.innerHTML = res.jobs.length ? res.jobs.map(j => `
-                <div class="godz-card border-success">
-                    <p class="mb-1"><b>Dest:</b> ${j.dest}</p>
-                    <button class="btn-godz btn-sm" onclick="alert('Accepted')">ACCEPT</button>
+        const res = await call('getJobs', {});
+        const list = document.getElementById('job-list');
+        if(res.jobs.length > 0) {
+            playSound();
+            list.innerHTML = res.jobs.map(j => `
+                <div class="job-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="mb-0 fw-bold">${j.dest}</p>
+                            <small class="text-secondary">Rider: ${j.name}</small>
+                        </div>
+                        <button class="btn btn-sm btn-success px-3" onclick="acceptJob('${j.id}')">ACCEPT</button>
+                    </div>
                 </div>
-            `).join('') : '<p class="text-center text-secondary">Searching for riders...</p>';
-        });
+            `).join('');
+        }
         setTimeout(pollJobs, 5000);
     }
 
-    function logout() { localStorage.clear(); location.reload(); }
+    async function acceptJob(id) {
+        const res = await call('acceptRide', { rideId: id, driverPhone: user.phone, driverName: user.name });
+        if(res.status === 'success') alert("Job Accepted! Navigate to pin.");
+    }
+
+    async function auth(type) {
+        const phone = document.getElementById('phone').value;
+        const pass = document.getElementById('pass').value;
+        const role = document.getElementById('role').value;
+        const res = await call(type, { phone, pass, role, name: "Driver " + phone.slice(-4) });
+        if(res.status === 'success') {
+            localStorage.setItem('godz_user', JSON.stringify(res.user || {phone, role}));
+            location.reload();
+        } else alert("Error checking credentials");
+    }
 </script>
 </body>
 </html>
